@@ -1,0 +1,78 @@
+{
+    "training": {
+        "loss": {
+            "name": "SILog",
+            "weight": 10.0
+        }
+    },
+    "data": {
+        "crop": "eigen",
+        "val_dataset": "NYUDataset",
+        "data_root": "nyu",
+        "erp": false,
+        "tgt_f": 519,
+        "undistort_f": 0,
+        "fwd_sz": [480, 640],
+        "cano_sz": [1400, 1400],
+        "train_crop": [500, 700],
+        "augmentations": {
+            "horizontal_flip": 0.5,
+            "random_rotation": 2.5,
+            "random_scale": 0.2,
+            "random_translation": 0.05,
+            "random_brightness": 0.1,
+            "random_contrast": 0.1,
+            "random_saturation": 0.1,
+            "random_gamma": 0.2,
+            "random_hue": 0.1,
+            "random_sharpness": 0.1,
+            "random_posterize": 4,
+            "random_solarize": 0.2,
+            "rotation_p": 0,
+            "scale_p": 1,
+            "translation_p": 0,
+            "brightness_p": 1,
+            "contrast_p": 1,
+            "saturation_p": 1,
+            "gamma_p": 1,
+            "hue_p": 1,
+            "sharpness_p": 0,
+            "posterize_p": 0,
+            "solarize_p": 0,
+            "equalize_p": 0,
+            "autocontrast_p": 0
+        }
+    },
+    "model": {
+        "num_heads": 1,
+        "attn_dec": false,
+        "activation": "gelu",
+        "expansion": 4,
+        "output_dim": 1,
+        "isd": {
+            "latent_dim": 128,
+            "num_resolutions": 3,
+            "depths": 2
+        },
+        "pixel_decoder": {
+            "heads": 4,
+            "depths": 4,
+            "hidden_dim": 256,
+            "anchor_points": 4
+        },
+        "pixel_encoder": {
+            "img_size": [
+                1024,
+                512
+            ],
+            "name": "resnet101",
+            "lr_dedicated": 5e-05
+        },
+        "afp": {
+            "context_low_resolutions_skip": 1,
+            "depths": 2,
+            "latent_dim": 128,
+            "num_latents": 32
+        }
+    }
+}

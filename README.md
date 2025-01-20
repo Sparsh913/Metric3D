@@ -319,6 +319,13 @@ python3 onnx/test_onnx.py metric3d_vit_small.onnx
 
 [ros2_vision_inference](https://github.com/Owen-Liuyuxuan/ros2_vision_inference) provides a Python example, showcasing a pipeline from image to point clouds and integrated into ROS2 systems.
 
+### Eval on Wide FOV datasets (As reported in Depth Any Camera)
+We make the eval pipeline in a way that the directory structure of datasets in DAC is consistent and the same config files are leveraged.
+Sample command for evaluating ViT-L model on Matterport3D:
+```bash
+python3 mono/tools/test_scale_cano.py mono/configs/HourglassDecoder/vit.raft5.large.py --load-from weight/dino2_reg_vit_large.pth --batch_size 2 --base_path datasets/ --test_config mono/configs/test/dac_resnet101_indoor_test_m3d.json --launcher None
+```
+
 ### Download Checkpoint
 |      |       Encoder       |      Decoder      |                                               Link                                                |
 |:----:|:-------------------:|:-----------------:|:-------------------------------------------------------------------------------------------------:|

@@ -1,0 +1,51 @@
+{
+     "training": {
+        "loss": {
+            "name": "SILog",
+            "weight": 10.0
+        }
+    },
+    "data": {
+        "crop": "garg",
+        "val_dataset": "KITTIERPDataset",
+        "data_root": "kitti",
+        "erp": true,
+        "tgt_f": 0,
+        "undistort_f": 0,
+        "fwd_sz": [300, 1000],
+        "cano_sz": [1400, 1400],
+        "train_crop": [450, 600]
+    },
+    "model": {
+        "num_heads": 1,
+        "attn_dec": false,
+        "activation": "gelu",
+        "expansion": 4,
+        "output_dim": 1,
+        "isd": {
+            "latent_dim": 128,
+            "num_resolutions": 3,
+            "depths": 2
+        },
+        "pixel_decoder": {
+            "heads": 4,
+            "depths": 4,
+            "hidden_dim": 256,
+            "anchor_points": 4
+        },
+        "pixel_encoder": {
+            "img_size": [
+                1024,
+                512
+            ],
+            "name": "resnet101",
+            "lr_dedicated": 5e-05
+        },
+        "afp": {
+            "context_low_resolutions_skip": 1,
+            "depths": 2,
+            "latent_dim": 128,
+            "num_latents": 32
+        }
+    }
+}

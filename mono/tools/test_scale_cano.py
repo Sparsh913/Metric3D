@@ -3,6 +3,7 @@ import os.path as osp
 import cv2
 import time
 import sys
+import json
 CODE_SPACE=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(CODE_SPACE)
 import argparse
@@ -25,7 +26,10 @@ from mono.model.monodepth_model import get_configured_monodepth_model
 from mono.utils.running import load_ckpt
 from mono.utils.do_test import do_scalecano_test_with_custom_data
 from mono.utils.mldb import load_data_info, reset_ckpt_path
-from mono.utils.custom_data import load_from_annos, load_data
+from mono.utils.custom_data import load_from_annos, load_data, load_from_dataloader
+import mono.dataloaders as custom_dataset
+from torch.utils.data import DataLoader, SequentialSampler
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a segmentor')
@@ -38,6 +42,9 @@ def parse_args():
     parser.add_argument('--launcher', choices=['None', 'pytorch', 'slurm', 'mpi', 'ror'], default='slurm', help='job launcher')
     parser.add_argument('--test_data_path', default='None', type=str, help='the path of test data')
     parser.add_argument('--batch_size', default=1, type=int, help='the batch size for inference')
+    parser.add_argument('--test_config', default='None', type=str, help='the config of test data')
+    parser.add_argument('--base_path', default='None', type=str, help='the base path of test data')
+    parser.add_argument('--db_root', type=str, help='data root path', required=False)
     args = parser.parse_args()
     return args
 
@@ -63,6 +70,7 @@ def main(args):
         raise RuntimeError('Please set model path!')
     cfg.load_from = args.load_from
     cfg.batch_size = args.batch_size
+    cfg.db_root = args.db_root
     
     # load data info
     data_info = {}
@@ -92,13 +100,38 @@ def main(args):
     # dump config 
     cfg.dump(osp.join(cfg.show_dir, osp.basename(args.config)))
     test_data_path = args.test_data_path
+    
+    # config = args.test_config
+    with open(args.test_config) as f:
+        config = json.load(f)
+    data_dir = os.path.join(args.base_path, config["data"]["data_root"])
+    valid_dataset = getattr(custom_dataset, config["data"]["val_dataset"])(
+        test_mode=True, base_path=data_dir, crop=config["data"]["crop"],
+        tgt_f=config["data"]["tgt_f"],
+        undistort_f=config["data"]["undistort_f"],
+        fwd_sz=config["data"]["fwd_sz"],
+        cano_sz=config["data"]["cano_sz"],
+        erp=config["data"]["erp"],
+    )
+
+    valid_sampler = SequentialSampler(valid_dataset)
+    valid_loader = DataLoader(
+        valid_dataset,
+        batch_size=1,
+        num_workers=4,
+        sampler=valid_sampler,
+        pin_memory=True,
+        drop_last=False,
+    )
+    
     if not os.path.isabs(test_data_path):
         test_data_path = osp.join(CODE_SPACE, test_data_path)
-
+    print("test_data_path", test_data_path)
     if 'json' in test_data_path:
         test_data = load_from_annos(test_data_path)
     else:
-        test_data = load_data(args.test_data_path)
+        # test_data = load_data(args.test_data_path)
+        test_data = load_from_dataloader(valid_loader)
     
     if not cfg.distributed:
         main_worker(0, cfg, args.launcher, test_data)
@@ -108,7 +141,7 @@ def main(args):
             local_rank = cfg.dist_params.local_rank
             main_worker(local_rank, cfg, args.launcher, test_data)
         else:
-            mp.spawn(main_worker, nprocs=cfg.dist_params.num_gpus_per_node, args=(cfg, args.launcher, test_data))
+            mp.spawn(main_worker, nprocs=cfg.dist_params.num_gpus_per_node, args=(cfg, args.launcher, valid_loader))
         
 def main_worker(local_rank: int, cfg: dict, launcher: str, test_data: list):
     if cfg.distributed:
@@ -148,6 +181,7 @@ def main_worker(local_rank: int, cfg: dict, launcher: str, test_data: list):
         model, 
         cfg,
         test_data,
+        # valid_loader,
         logger,
         cfg.distributed,
         local_rank,

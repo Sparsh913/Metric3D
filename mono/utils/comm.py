@@ -9,9 +9,9 @@ from mmcv.utils import collect_env as collect_base_env
 try:
     from mmcv.utils import get_git_hash
 except:
-    from mmengine.utils import get_git_hash
+    from mmengine import get_git_hash
 #import mono.mmseg as mmseg
-# import mmseg
+import mmseg
 import time
 import datetime
 import logging
@@ -53,12 +53,12 @@ def _is_free_port(port):
         return all(s.connect_ex((ip, port)) != 0 for ip in ips)
 
 
-# def collect_env():
-#     """Collect the information of the running environments."""
-#     env_info = collect_base_env()
-#     env_info['MMSegmentation'] = f'{mmseg.__version__}+{get_git_hash()[:7]}'
+def collect_env():
+    """Collect the information of the running environments."""
+    env_info = collect_base_env()
+    env_info['MMSegmentation'] = f'{mmseg.__version__}+{get_git_hash()[:7]}'
 
-#     return env_info
+    return env_info
 
 def init_env(launcher, cfg):
     """Initialize distributed training environment.
@@ -72,6 +72,8 @@ def init_env(launcher, cfg):
         _init_dist_ror(cfg)
     elif launcher == 'None':
         _init_none_dist(cfg)
+    elif launcher == 'pytorch':
+        _init_dist_pytorch(cfg)
     else:
         raise RuntimeError(f'{cfg.launcher} has not been supported!')
 
@@ -93,6 +95,24 @@ def _init_dist_ror(cfg):
     cfg.dist_params.global_rank = get_world_rank()
     cfg.dist_params.local_rank = get_local_rank()
     os.environ["WORLD_SIZE"] = str(get_world_size())
+
+
+def _init_dist_pytorch(cfg):
+    # load env. paras.
+    local_rank = int(os.environ['LOCAL_RANK'])
+    world_size = int(os.environ['WORLD_SIZE'])
+    global_rank = int(os.environ['RANK'])
+    num_gpus = torch.cuda.device_count()
+    
+    cfg.dist_params.num_gpus_per_node = num_gpus
+    cfg.dist_params.world_size = world_size
+    cfg.dist_params.nnodes = int(world_size // num_gpus)
+    cfg.dist_params.node_rank = int(global_rank % num_gpus)
+    cfg.dist_params.global_rank = global_rank
+
+    os.environ['NODE_RANK'] = str(cfg.dist_params.node_rank)
+    # set dist_url to 'env://' 
+    cfg.dist_params.dist_url =  'env://' #f"{master_addr}:{master_port}"
 
 
 def _init_dist_slurm(cfg):
@@ -193,7 +213,7 @@ class TrainingStats(object):
     def __init__(self, log_period, tensorboard_logger=None):
         self.log_period = log_period
         self.tblogger = tensorboard_logger
-        self.tb_ignored_keys = ['iter', 'eta', 'epoch', 'time']
+        self.tb_ignored_keys = ['iter', 'eta', 'epoch', 'time', 'val_err']
         self.iter_timer = Timer()
         # Window size for smoothing tracked values (with median filtering)
         self.filter_size = log_period
@@ -227,6 +247,7 @@ class TrainingStats(object):
                 self.tb_log_stats(stats, cur_iter)
             for k, v in self.smoothed_losses.items():
                 v.reset()
+            self.iter_timer.reset() # reset time counting every log period
 
     def tb_log_stats(self, stats, cur_iter):
         """Log the tracked statistics to tensorboard"""
@@ -237,6 +258,9 @@ class TrainingStats(object):
                 if isinstance(v, dict):
                     self.tb_log_stats(v, cur_iter)
                 else:
+                    # v is complex value, drop the imaginary part
+                    if isinstance(v, complex):
+                        v = v.real
                     self.tblogger.add_scalar(k, v, cur_iter)
 
 
@@ -256,6 +280,12 @@ class TrainingStats(object):
             lr[lr_name] = optimizer_state_dict['param_groups'][i]['lr']
 
         stats['lr'] = OrderedDict(lr)
+        # identify type of values in stats['lr]
+        # for k, v in stats['lr'].items():
+        #     # if isinstance(v, torch.Tensor):
+        #     # stats['lr'][k] = v.item()
+        #     print(f"type of lr: {type(v)}")
+        #     print(f"type of lr: {type(stats['lr'][k])}")
         for k, v in self.smoothed_losses.items():
             stats[k] = v.avg
 
@@ -316,7 +346,7 @@ def log_stats(stats):
     lines += '\n'
 
     # lr in different groups
-    lines += "\t\t" +  ",  ".join("%s: %.8f" % (k, v) for k, v in stats['lr'].items())
+    lines += "\t\t" +  ",  ".join("%s: %0.real:.8f" % (k, v) for k, v in stats['lr'].items())
     lines += '\n'
     logger.info(lines[:-1])  # remove last new linen_pxl
 

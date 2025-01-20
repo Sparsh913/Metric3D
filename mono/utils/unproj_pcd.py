@@ -34,6 +34,37 @@ def reconstruct_pcd(depth, fx, fy, u0, v0, pcd_base=None, mask=None):
         pcd[mask] = 0
     return pcd
 
+def reconstruct_pcd_erp(depth, mask=None, phi=np.pi/2, theta=np.pi):
+    "assume to use hemishperes of 360 degree camera"
+    if type(depth) == torch.__name__:
+        depth = depth.cpu().numpy().squeeze()
+    depth = cv2.medianBlur(depth, 5)
+    H, W = depth.shape
+    latitude = np.linspace(-phi, phi, H)
+    longitude = np.linspace(theta, 0, W)
+    longitude, latitude = np.meshgrid(longitude, latitude)
+    longitude = longitude.astype(np.float32)
+    latitude = latitude.astype(np.float32)
+
+    x = np.cos(latitude) * np.cos(longitude)
+    z = np.cos(latitude) * np.sin(longitude)
+    y = np.sin(latitude)
+    
+    mask = z < 0
+    x = np.where(mask, 1/np.sqrt(3), x)
+    y = np.where(mask, 1/np.sqrt(3), y)
+    z = np.where(mask, 1/np.sqrt(3), z)
+    
+    pcd_base = np.concatenate([x[:, :, None], y[:, :, None], z[:, :, None]], axis=2)
+    pcd = depth[:, :, None] * pcd_base
+    if mask is not None:
+        pcd[mask] = 0
+        
+    # sky_threshold = 0.07*phi
+    # sky_mask = latitude < sky_threshold
+    # pcd[sky_mask] = 0
+    return pcd
+
 
 def save_point_cloud(pcd, rgb, filename, binary=True):
     """Save an RGB point cloud as a PLY file.

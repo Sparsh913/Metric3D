@@ -1,0 +1,51 @@
+{
+    "training": {
+        "loss": {
+            "name": "SILog",
+            "weight": 10.0
+        }
+    },
+    "data": {
+        "crop": "",
+        "val_dataset": "MatterPort3DDataset",
+        "data_root": "matterport3d",
+        "erp": false,
+        "tgt_f": 519,
+        "undistort_f": 0,
+        "fwd_sz": [512, 1024],
+        "cano_sz": [1400, 2800],
+        "train_crop": [500, 700]
+    },
+    "model": {
+        "num_heads": 1,
+        "attn_dec": false,
+        "activation": "gelu",
+        "expansion": 4,
+        "output_dim": 1,
+        "isd": {
+            "latent_dim": 128,
+            "num_resolutions": 3,
+            "depths": 2
+        },
+        "pixel_decoder": {
+            "heads": 4,
+            "depths": 4,
+            "hidden_dim": 256,
+            "anchor_points": 4
+        },
+        "pixel_encoder": {
+            "img_size": [
+                1024,
+                512
+            ],
+            "name": "swin_large_22k",
+            "lr_dedicated": 5e-05
+        },
+        "afp": {
+            "context_low_resolutions_skip": 1,
+            "depths": 2,
+            "latent_dim": 128,
+            "num_latents": 32
+        }
+    }
+}

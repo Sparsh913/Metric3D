@@ -1,0 +1,52 @@
+{
+    "training": {
+        "loss": {
+            "name": "SILog",
+            "weight": 10.0
+        }
+    },
+    "data": {
+        "crop": "",
+        "val_dataset": "KITTI360ERPDataset",
+        "data_root": "kitti360",
+        "erp": false,
+        "tgt_f": 720,
+        "undistort_f": 0,
+        "fwd_sz": [700, 700],
+        "cano_sz": [1400, 1400],
+        "train_crop": [450, 600]
+    },
+    "model": {
+        "num_heads": 1,
+        "attn_dec": true,
+        "activation": "gelu",
+        "expansion": 4,
+        "output_dim": 1,
+        "isd": {
+            "latent_dim": 128,
+            "num_resolutions": 3,
+            "depths": 2,
+            "output_dim": 1
+        },
+        "pixel_decoder": {
+            "heads": 4,
+            "depths": 6,
+            "hidden_dim": 256,
+            "anchor_points": 8
+        },
+        "pixel_encoder": {
+            "img_size": [
+                1216,
+                352
+            ],
+            "name": "swin_large_22k",
+            "lr_dedicated": 0.00005
+        },
+        "afp": {
+            "context_low_resolutions_skip": 1,
+            "depths": 2,
+            "latent_dim": 128,
+            "num_latents": 32
+        }
+    }
+}

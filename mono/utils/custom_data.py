@@ -27,6 +27,20 @@ def load_from_annos(anno_path):
         datas.append(data_i)
     return datas
 
+def load_from_dataloader(dataloader):
+    datas = []
+    for i, data in enumerate(dataloader):
+        data_i = {
+            'rgb': data['image'][0],
+            'depth': data['gt'][0],
+            'depth_scale': 1.0,
+            'intrinsic': data['intrinsic'],
+            # 'filename': os.path.basename(data['img_path'][0]),
+            # 'folder': data['img_path'][0].split('/')[-3]
+        }
+        datas.append(data_i)
+    return datas
+
 def load_data(path: str):
     rgbs = glob.glob(path + '/*.jpg') + glob.glob(path + '/*.png')
     #intrinsic =  [835.8179931640625, 835.8179931640625, 961.5419921875, 566.8090209960938] #[721.53769, 721.53769, 609.5593, 172.854]
