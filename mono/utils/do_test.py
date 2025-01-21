@@ -277,7 +277,6 @@ def do_scalecano_test_with_custom_data(
             gt_depth = gt_depth.permute(1, 2, 0).cpu().numpy()
             gt_depths.append(gt_depth)
             intrinsic = an['intrinsic']
-            print("intrinsic", intrinsic)
             if intrinsic is None:
                 intrinsic = [1000.0, 1000.0, rgb_origin.shape[1]/2, rgb_origin.shape[0]/2]
             # active_mask = an["active_mask"]
@@ -347,12 +346,7 @@ def postprocess_per_image(i, pred_depth, gt_depth, intrinsic, rgb_origin, normal
     pred_depth = pred_depth.squeeze()
     pred_depth = pred_depth[pad[0] : pred_depth.shape[0] - pad[1], pad[2] : pred_depth.shape[1] - pad[3]]
     pred_depth = torch.nn.functional.interpolate(pred_depth[None, None, :, :], [rgb_origin.shape[0], rgb_origin.shape[1]], mode='bilinear').squeeze().to("cuda") # to original size
-    if isinstance(scale_info, torch.Tensor):
-        print("scale_info type", type(scale_info))
-        scale_info = scale_info.to("cuda")
-    if isinstance(normalize_scale, torch.Tensor):
-        print("normalize_scale type", type(normalize_scale))
-        normalize_scale = normalize_scale.to("cuda")
+    scale_info = scale_info.to("cuda")
     pred_depth = pred_depth * normalize_scale / scale_info
 
     pred_depth = (pred_depth > 0) * (pred_depth < 300) * pred_depth
