@@ -349,7 +349,7 @@ def postprocess_per_image(i, pred_depth, gt_depth, intrinsic, rgb_origin, normal
     scale_info = scale_info.to("cuda")
     pred_depth = pred_depth * normalize_scale / scale_info
 
-    pred_depth = (pred_depth > 0) * (pred_depth < 300) * pred_depth
+    pred_depth = (pred_depth > 0) * (pred_depth < 80) * pred_depth
     if gt_depth is not None:
 
         pred_depth = torch.nn.functional.interpolate(pred_depth[None, None, :, :], (gt_depth.shape[0], gt_depth.shape[1]), mode='bilinear').squeeze() # to original size

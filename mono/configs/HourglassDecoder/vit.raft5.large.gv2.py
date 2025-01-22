@@ -25,7 +25,7 @@ data_basic=dict(
     depth_range=(0, 1),
     depth_normalize=(0.1, max_value),
     crop_size = (500, 750), #(616, 1064),  # %28 = 0
-     clip_depth_range=(0.1, 200),
+    clip_depth_range=(0.1, 80),
     vit_size=(616,1064)
 ) 
 
